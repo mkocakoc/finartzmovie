@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>FINARTZ</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../project/css/project.css">
+    <link rel="icon" type="image/png" href="../images/favicon.png" />
+    <link href="../project/fontawesome-free-5.14.0-web/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="jumbotron text-center header">
+        <h1> <img src="../images/logo.png">MOVIES</h1>
+    </div>
+    <div class="container">
+        <div class="row">
+
+            <div id="search-box" class="col-sm-10">
+                
+                <label for="searchbox" style="display: none;">Search Movie: </label>
+                <input class="form-control" id="querybox">
+            
+            </div>
+            <div id="search-button" class="col-sm-2">
+                <input type="button" id="searchbutton" class="btn btn-danger btn-block" value="Search"></input>
+            </div>     
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <h1 >Search History</h1>
+                <ul id="searchHistory"></ul> 
+               
+        </div>
+        
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-sm-12">
+                <h1>Search Result</h1>
+                <hr>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12">
+                <div id="result">
+                    <div class="movie">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12">
+                <h1>Favorites</h1>
+
+                <hr>
+            </div>
+        </div>
+
+        <div class="favorites-list row">
+            
+        </div>
+    </div>
+    </div>
+</body>
+<script src="../project/js/jquery-3.5.1.min.js"></script>
+<script src="../bootstrap/js/bootstrap.min.js"></script>
+<script>
+    var old_queries = [];
+
+    var search = function (e, record = false) {
+        var query = $("input#querybox").val();
+
+        if (query.length > 3) {
+            getanswer(query);
+
+            if (record) {
+                old_queries.push(query);
+            }
+        };
+    }
+
+    function getanswer(q) {
+        $.get("https://www.omdbapi.com/?s=" + q + "&apikey=b0202a42", function (data) {
+            if (!data.hasOwnProperty('Search'))
+                return;
+
+            var title = data.Search[0].Title;
+            var year = data.Search[0].Year;
+            var imdb_id = data.Search[0].imdbID;
+            var imdburl = "https://www.imdb.com/title/" + imdb_id + "/";
+
+            var posterurl = data.Search[0].Poster;
+            
+            var html = `
+            <div class='row'>
+                <div class='col-sm-12'>
+                    <h3>${title}</h3>
+                </div>
+            </div>
+            <div class="row">
+                <div class='col-sm-6 float-left'>
+                    <img src= '${posterurl}'>
+                </div>
+
+                <div class='col-sm-6 float-left'>
+                    <p><span>IMDB page:</span> <a href='${imdburl}'target='_blank'>${imdburl}</a></p>
+
+                    <i class='favorite far' data-imdb-id=${imdb_id}>&#xf005;</i>
+
+                </div>
+            </div>`;
+            
+            $("#result .movie").html(html).attr("data-imdb-id", imdb_id);
+
+            if ($(".favorites-list").find(`.movie[data-imdb-id=${imdb_id}`).length > 0) {
+                $("#result .movie .favorite").addClass('fas');
+            }
+        });
+    }
+
+    $('input#querybox').keyup(search);
+    $('#searchbutton').click(function(e) {
+        search(true);
+        old_queries.push($('#querybox').val());
+        $('#querybox').val("");
+        $('#searchHistory').text("");        
+        $.each(old_queries, function (index, value) {
+        $('#searchHistory').append("<li class='historyItem'  onclick='addtotextbox("+index+")'>" + value + '<i  class="closelist fas fa-times"></i></li>' );
+        var deletefunction =  $(".closelist").on("click", function() {
+               
+               var parent = $(this).parents().find(`.historyItem`);
+               parent.fadeOut(function() {
+                   $(this).remove();
+               }) 
+               })
+    function scriptsender(){
+        console.log(deletefunction)
+    }
+    });
+    
+        
+    }); 
+    function addtotextbox(id)
+    {
+    $('#querybox').val(old_queries[id]);
+    }   
+    
+    $("#result").on("click", ".favorite", function() {
+        $(this).toggleClass("fas");
+
+        if (!$(this).hasClass("fas"))
+        {
+            var imdb_id = $("#result .movie").attr("data-imdb-id");
+            $(`.favorites-list .movie[data-imdb-id=${imdb_id}]`).fadeOut();
+            return;
+        }
+
+        $(".favorites-list").append(`<div class="col-sm-12">${$("#result").html()}</div>`);
+    });
+
+    $(".favorites-list").on("click", ".favorite", function() {
+        $(this).toggleClass("fas");
+
+        if ($(this).hasClass("fas"))
+            return;
+
+        var imdb_id = $(this).attr('data-imdb-id');
+        var parent = $(this).parents().find(`.favorites-list [data-imdb-id=${imdb_id}]`);
+       
+        parent.fadeOut(function() {
+            $(this).remove();
+        })
+
+        $(`#result .movie[data-imdb-id=${imdb_id}`).find('.favorite').removeClass('fas');
+        
+        console.log("imdb id to remove", imdb_id);
+    });
+
+   
+   
+
+    
+</script>
+
+</html>
